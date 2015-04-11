@@ -38,19 +38,67 @@ func New(capacity int) (cache *LRUCache, err error) {
 	return c, nil
 }
 
-//
-func (cache *LRUCache) Get(key interface{}) (value interface{}, ok bool) {
+// add value into LRU cache
+func (cache *LRUCache) Add(key, value interface{}) {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
 
+	if cache.cacheData == nil {
+		// the cache data is not set
+		cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)
+		cache.cacheData = list.New()
+	}
+	if ent, ok := cache.keyMap[key]; ok {
+		cache.cacheData.MoveToFront(ent)
+		ent.Value.(*cacheItem).value = value
+	}
+	ent := &cacheItem{key, value}
+	item := cache.cacheData.PushFront(ent)
+	cache.keyMap[key] = item
+
+	if cache.capacity != 0 && cache.cacheData.Len() > cache.capacity {
+		cache.removeOldest()
+	}
 }
 
-func (cache *LRUCache) Set(key interface{}, value interface{}) {
+// get the LRU value data from the cache
+func (cache *LRUCache) Get(key interface{}) (value interface{}, ok bool) {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
 
+	if ent, ok := cache.keyMap[key]; ok {
+		cache.cacheData.MoveToFront(ent)
+		return ent.Value.(*cacheItem).value, ok
+	}
+	return
 }
 
 func (cache *LRUCache) Remove(key interface{}) {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
 
+	if ent, ok := cache.keyMap[key]; ok {
+		cache.removeElement(ent)
+	}
 }
 
 func (cache *LRUCache) Clear() {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
 
+	cache.cacheData = list.New()
+	cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)
+}
+
+func (cache *LRUCache) removeOldest() {
+	ent := cache.cacheData.Back()
+	if ent != nil {
+		cache.removeElement(ent)
+	}
+}
+
+func (cache *LRUCache) removeElement(e *list.Element) {
+	cache.cacheData.Remove(e)
+	kv := e.Value.(*cacheItem)
+	delete(cache.keyMap, kv.key)
 }
