@@ -51,6 +51,7 @@ func (cache *LRUCache) Add(key, value interface{}) {
 	if ent, ok := cache.keyMap[key]; ok {
 		cache.cacheData.MoveToFront(ent)
 		ent.Value.(*cacheItem).value = value
+		return
 	}
 	ent := &cacheItem{key, value}
 	item := cache.cacheData.PushFront(ent)
@@ -90,14 +91,47 @@ func (cache *LRUCache) Clear() {
 	cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)
 }
 
+func (cache *LRUCache) Len() int {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+	return cache.cacheData.Len()
+}
+
+// Keys returns a slice of the keys in the cache
+// old2new true from oldest to newest
+func (cache *LRUCache) Keys(old2new bool) []interface{} {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+
+	keys := make([]interface{}, len(cache.keyMap))
+	var ent *list.Element = nil
+	if old2new {
+		ent = cache.cacheData.Back()
+	} else {
+		ent = cache.cacheData.Front()
+	}
+	i := 0
+	for ent != nil {
+		keys[i] = ent.Value.(*cacheItem).key
+		if old2new {
+			ent = ent.Prev()
+		} else {
+			ent = ent.Next()
+		}
+		i++
+	}
+	return keys
+}
+
 func (cache *LRUCache) removeOldest() {
 	ent := cache.cacheData.Back()
-	if ent != nil {
-		cache.removeElement(ent)
-	}
+	cache.removeElement(ent)
 }
 
 func (cache *LRUCache) removeElement(e *list.Element) {
+	if e == nil {
+		return
+	}
 	cache.cacheData.Remove(e)
 	kv := e.Value.(*cacheItem)
 	delete(cache.keyMap, kv.key)

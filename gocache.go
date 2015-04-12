@@ -1,6 +1,7 @@
 package gocache
 
 import (
+	"errors"
 	"gocache/type"
 )
 
@@ -10,7 +11,7 @@ type CacheManager struct {
 	TimeToIdleSeconds int
 	TimeToLiveSeconds int
 	Capacity          int
-	Cache             Cache
+	cacheMap          map[string]Cache
 }
 
 type Cache interface {
@@ -18,13 +19,26 @@ type Cache interface {
 	Get(key interface{}) (value interface{}, ok bool)
 	Remove(key interface{})
 	Clear()
+	Len() int
+	Keys(old2new bool) []interface{}
 }
 
 func New(manager *CacheManager) (cache Cache, err error) {
+	if manager.cacheMap == nil {
+		manager.cacheMap = make(map[string]Cache)
+	}
+	if c, ok := manager.cacheMap[manager.Name]; ok {
+		return c, errors.New("The cache key map already exist")
+	}
 	switch manager.Type {
 	case "lru":
-		return lru.New(manager.Capacity)
+		cache, err := lru.New(manager.Capacity)
+		if err == nil {
+			manager.cacheMap[manager.Name] = cache
+			return cache, nil
+		}
+		return nil, err
 	default:
-		panic("No support cache type")
+		return nil, errors.New("No support cache type")
 	}
 }
