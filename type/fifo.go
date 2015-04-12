@@ -91,3 +91,33 @@ func (cache *FIFOCache) Clear() {
 	cache.cacheData = list.New()
 	cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)
 }
+
+func (cache *FIFOCache) Len() int{
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+	return cache.cacheData.Len()
+}
+
+func (cache *FIFOCache) Keys(old2new bool) []interface{} {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+
+	keys := make([]interface{}, len(cache.keyMap))
+	var ent *list.Element = nil
+	if old2new {
+		ent = cache.cacheData.Back()
+	} else {
+		ent = cache.cacheData.Front()
+	}
+	i := 0
+	for ent != nil {
+		keys[i] = ent.Value.(*cacheItem).key
+		if old2new {
+			ent = ent.Prev()
+		} else {
+			ent = ent.Next()
+		}
+		i++
+	}
+	return keys
+}
