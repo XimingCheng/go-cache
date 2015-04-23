@@ -2,7 +2,7 @@ package gocache
 
 import (
 	"errors"
-	"gocache/type"
+	"github.com/XimingCheng/go-cache/cachetype"
 )
 
 type CacheManager struct {
@@ -30,15 +30,17 @@ func New(manager *CacheManager) (cache Cache, err error) {
 	if c, ok := manager.cacheMap[manager.Name]; ok {
 		return c, errors.New("The cache key map already exist")
 	}
+
 	switch manager.Type {
 	case "lru":
-		cache, err := lru.New(manager.Capacity)
-		if err == nil {
-			manager.cacheMap[manager.Name] = cache
-			return cache, nil
-		}
-		return nil, err
+		cache, err = cachetype.NewLRUCache(manager.Capacity)
+	case "fifo":
+		cache, err = cachetype.NewFIFOCache(manager.Capacity)
 	default:
 		return nil, errors.New("No support cache type")
 	}
+	if err == nil {
+		manager.cacheMap[manager.Name] = cache
+	}
+	return nil, err
 }
