@@ -5,7 +5,7 @@ import (
 )
 
 func TestLRU(t *testing.T) {
-	c, err := New(100)
+	c, err := NewLRUCache(100)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestLRU(t *testing.T) {
 		t.Fatalf("cache clear failed!")
 	}
 
-	c, err = New(10)
+	c, err = NewLRUCache(10)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
