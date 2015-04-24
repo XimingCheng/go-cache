@@ -1,0 +1,10 @@
+anguage: go
+go: 
+ - 1.1
+ - 1.2
+ - 1.3
+ - release
+ - tip
+
+script:
+ - go test -v ./...
