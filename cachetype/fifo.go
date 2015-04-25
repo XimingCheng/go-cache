@@ -52,7 +52,7 @@ func (cache *FIFOCache) Get(key interface{}) (value interface{}, ok bool) {
 	if ent, ok := cache.keyMap[key]; ok {
 		return ent.Value.(*cacheItem).value, ok
 	}
-	return
+	return nil, ok
 }
 
 func (cache *FIFOCache) Remove(key interface{}) {

@@ -56,7 +56,7 @@ func (cache *LRUCache) Get(key interface{}) (value interface{}, ok bool) {
 		cache.cacheData.MoveToFront(ent)
 		return ent.Value.(*cacheItem).value, ok
 	}
-	return
+	return nil, ok
 }
 
 func (cache *LRUCache) Remove(key interface{}) {

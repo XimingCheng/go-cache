@@ -110,32 +110,28 @@ func (manager *cacheManager) timerRun(name chan string) {
 		time.Sleep(time.Second)
 		idleToDel := make([]interface{}, 0)
 		liveToDel := make([]interface{}, 0)
+		manager.lock.Lock()
 		for k, v := range idle {
-			manager.lock.Lock()
 			idle[k] = v + 1
-			manager.lock.Unlock()
 			if idle[k] >= manager.paramsMap[n].TimeToIdleSeconds {
 				idleToDel = append(idleToDel, k)
 			}
 		}
 		for _, k := range idleToDel {
-			manager.lock.Lock()
 			c.Remove(k)
-			manager.lock.Unlock()
 		}
+		manager.lock.Unlock()
+		manager.lock.Lock()
 		for k, v := range live {
-			manager.lock.Lock()
 			live[k] = v + 1
-			manager.lock.Unlock()
 			if live[k] >= manager.paramsMap[n].TimeToLiveSeconds {
 				liveToDel = append(liveToDel, k)
 			}
 		}
 		for _, k := range liveToDel {
-			manager.lock.Lock()
 			c.Remove(k)
-			manager.lock.Unlock()
 		}
+		manager.lock.Unlock()
 	}
 }
 

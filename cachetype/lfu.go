@@ -72,7 +72,8 @@ func (cache *LFUCache) Add(key, value interface{}) {
 	heap.Push(cache.cacheData, item)
 
 	if cache.capacity != 0 && cache.cacheData.Len() > cache.capacity {
-		heap.Pop(cache.cacheData)
+		d := heap.Pop(cache.cacheData)
+		delete(cache.keyMap, d)
 	}
 }
 
@@ -81,7 +82,7 @@ func (cache *LFUCache) Get(key interface{}) (value interface{}, ok bool) {
 		(*cache.cacheData)[pos].frequency++
 		return (*cache.cacheData)[pos].value, ok
 	}
-	return
+	return nil, ok
 }
 
 func (cache *LFUCache) Remove(key interface{}) {
