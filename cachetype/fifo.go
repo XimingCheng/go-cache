@@ -3,14 +3,12 @@ package cachetype
 import (
 	"container/list"
 	"errors"
-	"sync"
 )
 
 type FIFOCache struct {
 	capacity  int
 	cacheData *list.List
 	keyMap    map[interface{}]*list.Element
-	lock      sync.Mutex
 }
 
 func NewFIFOCache(capacity int) (cache *FIFOCache, err error) {
@@ -27,9 +25,6 @@ func NewFIFOCache(capacity int) (cache *FIFOCache, err error) {
 
 // add value into FIFO cache
 func (cache *FIFOCache) Add(key, value interface{}) {
-	cache.lock.Lock()
-	defer cache.lock.Unlock()
-
 	if cache.cacheData == nil {
 		// the cache data is not set
 		cache.cacheData = list.New()
@@ -54,9 +49,6 @@ func (cache *FIFOCache) removeOldest() {
 
 // get the FIFO value data from the cache
 func (cache *FIFOCache) Get(key interface{}) (value interface{}, ok bool) {
-	cache.lock.Lock()
-	defer cache.lock.Unlock()
-
 	if ent, ok := cache.keyMap[key]; ok {
 		return ent.Value.(*cacheItem).value, ok
 	}
@@ -64,8 +56,6 @@ func (cache *FIFOCache) Get(key interface{}) (value interface{}, ok bool) {
 }
 
 func (cache *FIFOCache) Remove(key interface{}) {
-	cache.lock.Lock()
-	defer cache.lock.Unlock()
 	if ent, ok := cache.keyMap[key]; ok {
 		cache.removeElement(ent)
 	}
@@ -81,23 +71,16 @@ func (cache *FIFOCache) removeElement(e *list.Element) {
 }
 
 func (cache *FIFOCache) Clear() {
-	cache.lock.Lock()
-	defer cache.lock.Unlock()
 	//golang has garbage collection
 	cache.cacheData = list.New()
 	cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)
 }
 
 func (cache *FIFOCache) Len() int {
-	cache.lock.Lock()
-	defer cache.lock.Unlock()
 	return cache.cacheData.Len()
 }
 
 func (cache *FIFOCache) Keys(old2new bool) []interface{} {
-	cache.lock.Lock()
-	defer cache.lock.Unlock()
-
 	keys := make([]interface{}, len(cache.keyMap))
 	var ent *list.Element = nil
 	if old2new {
