@@ -19,13 +19,14 @@ func NewFIFOCache(capacity int) (cache *FIFOCache, err error) {
 	c := &FIFOCache{
 		capacity:  capacity,
 		cacheData: list.New(),
+		keyMap:    make(map[interface{}]*list.Element, capacity),
 	}
 	return c, nil
 }
 
 // add value into FIFO cache
 func (cache *FIFOCache) Add(key, value interface{}) {
-	if cache.cacheData == nil {
+	if cache.cacheData == nil || cache.keyMap == nil {
 		// the cache data is not set
 		cache.cacheData = list.New()
 		cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)
@@ -80,10 +81,11 @@ func (cache *FIFOCache) Len() int {
 	return cache.cacheData.Len()
 }
 
+//iterate cache according to front to back or on the contrary
 func (cache *FIFOCache) Keys(old2new bool) []interface{} {
 	keys := make([]interface{}, len(cache.keyMap))
 	var ent *list.Element = nil
-	if old2new {
+	if !old2new {
 		ent = cache.cacheData.Back()
 	} else {
 		ent = cache.cacheData.Front()
@@ -91,7 +93,7 @@ func (cache *FIFOCache) Keys(old2new bool) []interface{} {
 	i := 0
 	for ent != nil {
 		keys[i] = ent.Value.(*cacheItem).key
-		if old2new {
+		if !old2new {
 			ent = ent.Prev()
 		} else {
 			ent = ent.Next()
