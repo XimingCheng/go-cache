@@ -80,8 +80,9 @@ func (cache *LFUCache) Add(key, value interface{}) {
 func (cache *LFUCache) Get(key interface{}) (value interface{}, ok bool) {
 	if pos, ok := cache.keyMap[key]; ok {
 		(*cache.cacheData)[pos].frequency++
+		value := (*cache.cacheData)[pos].value
 		heap.Fix(cache.cacheData, pos)
-		return (*cache.cacheData)[pos].value, ok
+		return value, ok
 	}
 	return nil, ok
 }
