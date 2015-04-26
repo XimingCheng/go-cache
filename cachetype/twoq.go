@@ -1,7 +1,6 @@
 package cachetype
 
 import (
-	"container/list"
 	"errors"
 )
 
@@ -13,22 +12,28 @@ type TWOQCache struct {
 }
 
 // return a new Two Queue cache with given capacitys(include lrucache and fifocache), if errors occur, return err
-func NewTwoQCache(lrucapacity int, fifocapacity int) (c *TWOQCache, err error) {
-	if lrucapacity <= 0 || fifocapacity <= 0 {
+func NewTwoQCache(lruCapacity int, fifoCapacity int) (c *TWOQCache, err error) {
+	if lruCapacity <= 0 || fifoCapacity <= 0 {
 		return nil, errors.New("The input cache capacity is no more than 0")
 	}
 
 	c = &TWOQCache{
-		fifocapacity: fifocapacity,
-		lrucapacity:  lrucapacity,
-		lruCache:     NewLFUCache(lrucapacity),
-		fifocapacity: NewFIFOCache(fifocapacity),
+		fifoCapacity: fifoCapacity,
+		lruCapacity:  lruCapacity,
+		lruCache:     nil,
+		fifoCache:    nil,
+	}
+	if c.lruCache, err = NewLRUCache(lruCapacity); err != nil {
+		return nil, err
+	}
+	if c.fifoCache, err = NewFIFOCache(fifoCapacity); err != nil {
+		return nil, err
 	}
 	return c, nil
 }
 
 func (cache *TWOQCache) Add(key, value interface{}) {
-	TWOQCache.fifoCache.Add(key, value)
+	cache.fifoCache.Add(key, value)
 }
 
 func (cache *TWOQCache) Get(key interface{}) (value interface{}, ok bool) {
@@ -61,7 +66,7 @@ func (cache *TWOQCache) Clear() {
 	cache.lruCache.Clear()
 }
 
-func (cache *TWOQCache) Len() {
+func (cache *TWOQCache) Len() int {
 	return cache.fifoCache.Len() + cache.lruCache.Len()
 }
 
