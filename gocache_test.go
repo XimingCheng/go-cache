@@ -39,7 +39,7 @@ func TestBasicGoCache(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 	c.Get("key2")
-	time.Sleep(2000 * time.Millisecond)
+	time.Sleep(1500 * time.Millisecond)
 	if c.Len() != 2 {
 		for _, k := range c.Keys(false) {
 			t.Logf("key is %v", k)
