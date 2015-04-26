@@ -73,7 +73,8 @@ func (cache *LFUCache) Add(key, value interface{}) {
 
 	if cache.capacity != 0 && cache.cacheData.Len() > cache.capacity {
 		d := heap.Pop(cache.cacheData)
-		delete(cache.keyMap, d)
+		k := d.(*dataWrapper).key
+		delete(cache.keyMap, k)
 	}
 }
 
@@ -92,6 +93,13 @@ func (cache *LFUCache) Remove(key interface{}) {
 		heap.Remove(cache.cacheData, pos)
 		delete(cache.keyMap, key)
 	}
+}
+
+func (cache *LFUCache) IsExist(key interface{}) bool {
+	if _, ok := cache.keyMap[key]; ok {
+		return true
+	}
+	return false
 }
 
 func (cache *LFUCache) Clear() {

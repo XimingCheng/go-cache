@@ -65,6 +65,13 @@ func (cache *LRUCache) Remove(key interface{}) {
 	}
 }
 
+func (cache *LRUCache) IsExist(key interface{}) bool {
+	if _, ok := cache.keyMap[key]; ok {
+		return true
+	}
+	return false
+}
+
 func (cache *LRUCache) Clear() {
 	cache.cacheData = list.New()
 	cache.keyMap = make(map[interface{}]*list.Element, cache.capacity)

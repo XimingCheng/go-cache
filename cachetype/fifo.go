@@ -40,12 +40,9 @@ func (cache *FIFOCache) Add(key, value interface{}) {
 	cache.keyMap[key] = cache.cacheData.PushBack(ele)
 
 	if cache.capacity != 0 && cache.cacheData.Len() > cache.capacity {
-		cache.removeOldest()
+		d := cache.cacheData.Front()
+		cache.removeElement(d)
 	}
-}
-
-func (cache *FIFOCache) removeOldest() {
-	cache.removeElement(cache.cacheData.Front())
 }
 
 // get the FIFO value data from the cache
@@ -60,6 +57,13 @@ func (cache *FIFOCache) Remove(key interface{}) {
 	if ent, ok := cache.keyMap[key]; ok {
 		cache.removeElement(ent)
 	}
+}
+
+func (cache *FIFOCache) IsExist(key interface{}) bool {
+	if _, ok := cache.keyMap[key]; ok {
+		return true
+	}
+	return false
 }
 
 func (cache *FIFOCache) removeElement(e *list.Element) {
