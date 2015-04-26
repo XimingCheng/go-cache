@@ -113,8 +113,8 @@ func (cache *LFUCache) Keys(old2new bool) []interface{} {
 	} else {
 		i = 0
 	}
-	for key := range *cache.cacheData {
-		keys[i] = key
+	for _, element := range *cache.cacheData {
+		keys[i] = element.key
 		if old2new {
 			i--
 		} else {
