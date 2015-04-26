@@ -128,10 +128,6 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 }
 
 func timerRun(gc *GoCache, key interface{}) {
-	if t, ok := gc.timer[key]; ok {
-		t.Stop()
-	}
-	gc.timer[key] = time.NewTicker(1 * time.Millisecond)
 	for {
 		select {
 		case <-gc.timer[key].C:
@@ -140,6 +136,7 @@ func timerRun(gc *GoCache, key interface{}) {
 				defer gc.Lock.Unlock()
 
 				if !gc.c.IsExist(key) {
+					log.Printf("key %v not exist", key)
 					removeEle(gc, key)
 				}
 				gc.idleTimer[key]++
@@ -159,7 +156,9 @@ func timerRun(gc *GoCache, key interface{}) {
 func removeEle(gc *GoCache, key interface{}) {
 	log.Printf("Remove key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 	gc.c.Remove(key)
-	gc.timer[key].Stop()
+	if t, ok := gc.timer[key]; ok {
+		t.Stop()
+	}
 	delete(gc.timer, key)
 	delete(gc.idleTimer, key)
 	delete(gc.liveTimer, key)
@@ -188,6 +187,10 @@ func (gc *GoCache) Add(key, value interface{}) {
 		gc.idleTimer[key] = 0
 		gc.liveTimer[key] = 0
 		log.Printf("Add key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
+		if t, ok := gc.timer[key]; ok {
+			t.Stop()
+		}
+		gc.timer[key] = time.NewTicker(1 * time.Millisecond)
 		go timerRun(gc, key)
 	}
 }
@@ -200,6 +203,10 @@ func (gc *GoCache) Get(key interface{}) (value interface{}, ok bool) {
 	if ok && !gc.params.Eternal {
 		gc.idleTimer[key] = 0
 		log.Printf("Get key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
+		if t, ok := gc.timer[key]; ok {
+			t.Stop()
+		}
+		gc.timer[key] = time.NewTicker(1 * time.Millisecond)
 		go timerRun(gc, key)
 	}
 	return value, ok
@@ -214,7 +221,6 @@ func (gc *GoCache) Remove(key interface{}) {
 		if t, ok := gc.timer[key]; ok {
 			log.Printf("Del key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 			t.Stop()
-			delete(gc.timer, key)
 			delete(gc.idleTimer, key)
 			delete(gc.liveTimer, key)
 		}
@@ -230,6 +236,7 @@ func (gc *GoCache) Clear() {
 		gc.idleTimer = make(map[interface{}]int)
 		gc.liveTimer = make(map[interface{}]int)
 	}
+
 }
 
 func (gc *GoCache) Len() int {

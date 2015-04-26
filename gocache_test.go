@@ -89,4 +89,18 @@ func TestBasicGoCache(t *testing.T) {
 	if c.Len() != 4 {
 		t.Fatalf("err: len != 4 len = %d", c.Len())
 	}
+
+	c, e = New(
+		&CacheParams{"lru", "testlru4", 3, 5, false, 5})
+	if e != nil {
+		t.Fatalf("err: %v", e)
+	}
+	c.Add("key", "value")
+	c.Add("key1", "value1")
+	c.Add("key2", "value2")
+	c.Add("key3", "value3")
+	c.Add("key4", "value4")
+	c.Add("key5", "value5")
+	time.Sleep(time.Second)
+	c.Clear()
 }
