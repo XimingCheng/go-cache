@@ -46,6 +46,8 @@ type GoCache struct {
 	liveTimer map[interface{}]int
 	// timer
 	timer map[interface{}]*time.Ticker
+	// done chan
+	doneChan map[interface{}]chan bool
 	// params pointer
 	params *CacheParams
 	// the lock of the current cache
@@ -108,6 +110,7 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 				idleTimer: make(map[interface{}]int),
 				liveTimer: make(map[interface{}]int),
 				timer:     make(map[interface{}]*time.Ticker),
+				doneChan:  make(map[interface{}]chan bool),
 				params:    params,
 				Lock:      &lock,
 			}
@@ -117,6 +120,7 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 				idleTimer: nil,
 				liveTimer: nil,
 				timer:     nil,
+				doneChan:  nil,
 				params:    params,
 				Lock:      &lock,
 			}
@@ -129,7 +133,7 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 }
 
 func timerRun(gc *GoCache, key interface{}) {
-	doneChan := make(chan bool)
+	gc.doneChan[key] = make(chan bool)
 	for {
 		select {
 		case <-gc.timer[key].C:
@@ -139,19 +143,20 @@ func timerRun(gc *GoCache, key interface{}) {
 
 				if !gc.c.IsExist(key) {
 					log.Printf("key %v not exist", key)
-					removeEle(gc, key, doneChan)
+					removeEle(gc, key, gc.doneChan[key])
 				}
 				gc.idleTimer[key]++
 				gc.liveTimer[key]++
 				//log.Printf("key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 
 				if gc.idleTimer[key] >= 1000*gc.params.TimeToIdleSeconds {
-					removeEle(gc, key, doneChan)
+					removeEle(gc, key, gc.doneChan[key])
 				} else if gc.liveTimer[key] >= 1000*gc.params.TimeToLiveSeconds {
-					removeEle(gc, key, doneChan)
+					removeEle(gc, key, gc.doneChan[key])
 				}
 			}()
-		case <-doneChan:
+		case <-gc.doneChan[key]:
+			delete(gc.doneChan, key)
 			log.Printf("timer %v killed", key)
 			return
 		}
@@ -183,6 +188,7 @@ func (gc *GoCache) Add(key, value interface{}) {
 		gc.liveTimer[key] = 0
 		log.Printf("Add key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 		if t, ok := gc.timer[key]; ok {
+			gc.doneChan[key] <- true
 			t.Stop()
 		}
 		gc.timer[key] = time.NewTicker(1 * time.Millisecond)
@@ -201,6 +207,7 @@ func (gc *GoCache) Get(key interface{}) (value interface{}, ok bool) {
 		gc.idleTimer[key] = 0
 		log.Printf("Get key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 		if t, ok := gc.timer[key]; ok {
+			gc.doneChan[key] <- true
 			t.Stop()
 		}
 		gc.timer[key] = time.NewTicker(1 * time.Millisecond)
