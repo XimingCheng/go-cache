@@ -73,6 +73,7 @@ type cache interface {
 var manager cacheManager
 
 func New(params *CacheParams) (gc *GoCache, err error) {
+	log.Print("-----------------")
 	if params == nil {
 		return nil, errors.New("Input cache params invalid")
 	}
@@ -128,6 +129,7 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 }
 
 func timerRun(gc *GoCache, key interface{}) {
+	doneChan := make(chan bool)
 	for {
 		select {
 		case <-gc.timer[key].C:
@@ -137,45 +139,36 @@ func timerRun(gc *GoCache, key interface{}) {
 
 				if !gc.c.IsExist(key) {
 					log.Printf("key %v not exist", key)
-					removeEle(gc, key)
+					removeEle(gc, key, doneChan)
 				}
 				gc.idleTimer[key]++
 				gc.liveTimer[key]++
 				//log.Printf("key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 
 				if gc.idleTimer[key] >= 1000*gc.params.TimeToIdleSeconds {
-					removeEle(gc, key)
+					removeEle(gc, key, doneChan)
 				} else if gc.liveTimer[key] >= 1000*gc.params.TimeToLiveSeconds {
-					removeEle(gc, key)
+					removeEle(gc, key, doneChan)
 				}
 			}()
+		case <-doneChan:
+			log.Printf("timer %v killed", key)
+			return
 		}
 	}
 }
 
-func removeEle(gc *GoCache, key interface{}) {
+func removeEle(gc *GoCache, key interface{}, doneChan chan bool) {
 	log.Printf("Remove key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 	gc.c.Remove(key)
 	if t, ok := gc.timer[key]; ok {
+		log.Printf("stop timer %v", key)
+		doneChan <- true
 		t.Stop()
+		delete(gc.timer, key)
 	}
-	delete(gc.timer, key)
 	delete(gc.idleTimer, key)
 	delete(gc.liveTimer, key)
-}
-
-func (gc *GoCache) Stop() {
-	gc.Lock.Lock()
-	defer gc.Lock.Unlock()
-
-	if !gc.params.Eternal {
-		for k, t := range gc.timer {
-			if t != nil {
-				log.Printf("stop key timer %v", k)
-				t.Stop()
-			}
-		}
-	}
 }
 
 func (gc *GoCache) Add(key, value interface{}) {
@@ -192,6 +185,8 @@ func (gc *GoCache) Add(key, value interface{}) {
 		}
 		gc.timer[key] = time.NewTicker(1 * time.Millisecond)
 		go timerRun(gc, key)
+	} else {
+		log.Printf("Add key %v ", key)
 	}
 }
 
@@ -208,6 +203,8 @@ func (gc *GoCache) Get(key interface{}) (value interface{}, ok bool) {
 		}
 		gc.timer[key] = time.NewTicker(1 * time.Millisecond)
 		go timerRun(gc, key)
+	} else {
+		log.Printf("Get key %v ", key)
 	}
 	return value, ok
 }
@@ -221,9 +218,9 @@ func (gc *GoCache) Remove(key interface{}) {
 		if t, ok := gc.timer[key]; ok {
 			log.Printf("Del key %v idle %v live %v\n", key, gc.idleTimer[key], gc.liveTimer[key])
 			t.Stop()
-			delete(gc.idleTimer, key)
-			delete(gc.liveTimer, key)
 		}
+	} else {
+		log.Printf("Del key %v ", key)
 	}
 }
 
@@ -232,11 +229,7 @@ func (gc *GoCache) Clear() {
 	defer gc.Lock.Unlock()
 
 	gc.c.Clear()
-	if !gc.params.Eternal {
-		gc.idleTimer = make(map[interface{}]int)
-		gc.liveTimer = make(map[interface{}]int)
-	}
-
+	log.Print("Clear All")
 }
 
 func (gc *GoCache) Len() int {
