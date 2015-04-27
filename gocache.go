@@ -166,9 +166,11 @@ func removeEle(gc *GoCache, key interface{}, doneChan chan bool) {
 		doneChan <- true
 		t.Stop()
 		delete(gc.timer, key)
+		delete(gc.idleTimer, key)
+		delete(gc.liveTimer, key)
+	} else {
+		log.Printf("WARN -- KEY %v timer not exist", key)
 	}
-	delete(gc.idleTimer, key)
-	delete(gc.liveTimer, key)
 }
 
 func (gc *GoCache) Add(key, value interface{}) {
