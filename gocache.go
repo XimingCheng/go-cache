@@ -43,7 +43,7 @@ type GoCache struct {
 	//add timer
 	addTime map[interface{}]time.Time
 	// timer
-	timer map[interface{}]*time.Timer
+	timer *ConcurrenyMap
 	// params pointer
 	params *CacheParams
 	// the lock of the current cache
@@ -101,9 +101,10 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 	if err == nil {
 		var lock sync.Mutex
 		if !params.Eternal {
+			t, _ := NewConcurrenyMap(params.Capacity)
 			gc = &GoCache{
 				c:       c,
-				timer:   make(map[interface{}]*time.Timer),
+				timer:   t,
 				addTime: make(map[interface{}]time.Time),
 				params:  params,
 				lock:    &lock,
@@ -125,8 +126,8 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 }
 
 func timerRun(gc *GoCache, key interface{}) {
-	select {
-	case <-gc.timer[key].C:
+	if t, ok := gc.timer.Get(key); ok {
+		<-t.(*time.Timer).C
 		removeEle(gc, key)
 	}
 }
@@ -135,10 +136,11 @@ func removeEle(gc *GoCache, key interface{}) {
 	gc.lock.Lock()
 	defer gc.lock.Unlock()
 	gc.c.Remove(key)
-	if t, ok := gc.timer[key]; ok {
+	if ti, ok := gc.timer.Get(key); ok {
+		t := ti.(*time.Timer)
 		log.Printf("stop timer %v gc.timer %v", key, gc.timer)
 		t.Stop()
-		delete(gc.timer, key)
+		gc.timer.Delete(key)
 	}
 	log.Printf("delete key %v gc.addTime %v", key, gc.addTime)
 	delete(gc.addTime, key)
@@ -156,10 +158,11 @@ func (gc *GoCache) Add(key, value interface{}) {
 			min = gc.params.TimeToLiveSeconds * 1000
 		}
 		gc.addTime[key] = time.Now()
-		if t, ok := gc.timer[key]; ok {
+		if ti, ok := gc.timer.Get(key); ok {
+			t := ti.(*time.Timer)
 			t.Reset(time.Duration(min) * time.Millisecond)
 		} else {
-			gc.timer[key] = time.NewTimer(time.Duration(min) * time.Millisecond)
+			gc.timer.Add(key, time.NewTimer(time.Duration(min)*time.Millisecond))
 			go timerRun(gc, key)
 		}
 		log.Printf("add eternal key %v", key)
@@ -182,8 +185,8 @@ func (gc *GoCache) Get(key interface{}) (value interface{}, ok bool) {
 		if liveTime > gc.params.TimeToIdleSeconds*1000 {
 			liveTime = gc.params.TimeToIdleSeconds * 1000
 		}
-		if t, ok := gc.timer[key]; ok {
-			//gc.doneChan[key] <- true
+		if ti, ok := gc.timer.Get(key); ok {
+			t := ti.(*time.Timer)
 			t.Reset(time.Duration(liveTime) * time.Millisecond)
 		}
 		log.Printf("Get eternal key %v ", key)
