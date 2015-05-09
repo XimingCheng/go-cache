@@ -1,6 +1,7 @@
 package gocache
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/XimingCheng/go-cache/cachetype"
 	"log"
@@ -34,7 +35,8 @@ type cacheManager struct {
 	// the go cache params entity
 	paramsMap map[string]*CacheParams
 	// the cache lock for each cache
-	lock map[string]sync.Mutex
+	// lock  map[string]sync.Mutex
+	cacheFuncMap map[interface{}]*GoCache
 }
 
 type GoCache struct {
@@ -81,9 +83,9 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 	if manager.paramsMap == nil {
 		manager.paramsMap = make(map[string]*CacheParams)
 	}
-	if manager.lock == nil {
-		manager.lock = make(map[string]sync.Mutex)
-	}
+	// if manager.lock == nil {
+	// 	manager.lock = make(map[string]sync.Mutex)
+	// }
 	if c, ok := manager.cacheMap[params.Name]; ok {
 		return c, errors.New("The cache key map " + params.Name + " already exist")
 	}
@@ -150,9 +152,14 @@ func removeEle(gc *GoCache, key interface{}) {
 func (gc *GoCache) Add(key, value interface{}) {
 	gc.lock.Lock()
 	defer gc.lock.Unlock()
-	gc.c.Add(key, value)
+
+	jsonValue, e := json.Marshal(value)
+	if e != nil {
+		return
+	}
+	gc.c.Add(key, string(jsonValue))
 	if !gc.params.Eternal {
-		//element join time
+		// element join time
 		min := gc.params.TimeToIdleSeconds * 1000
 		if min > gc.params.TimeToLiveSeconds*1000 {
 			min = gc.params.TimeToLiveSeconds * 1000
@@ -175,9 +182,13 @@ func (gc *GoCache) Get(key interface{}) (value interface{}, ok bool) {
 	gc.lock.Lock()
 	defer gc.lock.Unlock()
 
-	value, ok = gc.c.Get(key)
+	v, ok := gc.c.Get(key)
 	if ok && !gc.params.Eternal {
-		//gc.idleTimer[key] = 0
+		valueJsonBytes := []byte(v.(string))
+		err := json.Unmarshal(valueJsonBytes, &value)
+		if err != nil {
+			return nil, false
+		}
 		liveTime := gc.params.TimeToLiveSeconds*1000 - int64((time.Now().Sub(gc.addTime[key]))/1000000)
 		if liveTime <= 0 {
 			return nil, false
@@ -197,18 +208,10 @@ func (gc *GoCache) Get(key interface{}) (value interface{}, ok bool) {
 }
 
 func (gc *GoCache) Remove(key interface{}) {
-	//removeEle(gc, key)
 	gc.lock.Lock()
 	defer gc.lock.Unlock()
+
 	gc.c.Remove(key)
-	// if !gc.params.Eternal {
-	// 	if t, ok := gc.timer[key]; ok {
-	// 		t.Stop()
-	// 		delete(gc.timer, key)
-	// 		delete(gc.addTime, key)
-	// 	}
-	// }
-	// log.Printf("stop timer %v", key)
 }
 
 func (gc *GoCache) Clear() {
@@ -216,14 +219,13 @@ func (gc *GoCache) Clear() {
 	defer gc.lock.Unlock()
 
 	gc.c.Clear()
-	// for k, _ := range gc.addTime {
-	// 	delete(gc.addTime, k)
-	// 	if t, ok := gc.timer[k]; ok {
-	// 		t.Stop()
-	// 	}
-	// 	delete(gc.timer, k)
-	// }
-	// log.Print("Clear All")
+}
+
+func (gc *GoCache) IsExist(key interface{}) bool {
+	gc.lock.Lock()
+	defer gc.lock.Unlock()
+
+	return gc.c.IsExist(key)
 }
 
 func (gc *GoCache) Len() int {
