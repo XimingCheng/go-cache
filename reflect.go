@@ -44,10 +44,8 @@ func Invoke(f interface{}, inputs ...interface{}) (outputs []interface{}, err er
 	}
 
 	if gc, ok := manager.cacheFuncMap[f]; ok {
-		inputsData := make([]reflect.Value, len(inputs))
 		inputsArgs := make([]interface{}, len(inputs))
 		for idx, input := range inputs {
-			inputsData[idx] = reflect.ValueOf(input)
 			inputsArgs[idx] = input
 		}
 		jsonInputBytes, e := json.Marshal(inputsArgs)
@@ -63,6 +61,10 @@ func Invoke(f interface{}, inputs ...interface{}) (outputs []interface{}, err er
 				return value.([]interface{}), nil
 			}
 		} else {
+			inputsData := make([]reflect.Value, len(inputs))
+			for idx, input := range inputs {
+				inputsData[idx] = reflect.ValueOf(input)
+			}
 			outputs = make([]interface{}, t.NumOut())
 			var outs []reflect.Value
 			if t.IsVariadic() {
