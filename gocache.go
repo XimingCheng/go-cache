@@ -45,7 +45,7 @@ type GoCache struct {
 	//add timer
 	addTime map[interface{}]time.Time
 	// timer
-	timer *ConcurrenyMap
+	timer *ConcurrencyMap
 	// params pointer
 	params *CacheParams
 	// the lock of the current cache
@@ -103,7 +103,7 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 	if err == nil {
 		var lock sync.Mutex
 		if !params.Eternal {
-			t, _ := NewConcurrenyMap(params.Capacity)
+			t, _ := NewConcurrencyMap(params.Capacity)
 			gc = &GoCache{
 				c:       c,
 				timer:   t,
@@ -155,7 +155,7 @@ func (gc *GoCache) Add(key, value interface{}) {
 
 	jsonValue, e := json.Marshal(value)
 	if e != nil {
-		return
+		panic(e.Error())
 	}
 	gc.c.Add(key, string(jsonValue))
 	if !gc.params.Eternal {
