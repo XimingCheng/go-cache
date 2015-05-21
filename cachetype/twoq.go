@@ -73,3 +73,7 @@ func (cache *TWOQCache) Len() int {
 func (cache *TWOQCache) IsExist(key interface{}) bool {
 	return cache.fifoCache.IsExist(key) && cache.lruCache.IsExist(key)
 }
+
+func (cache *TWOQCache) Keys(old2new bool) []interface{} {
+	panic("TWOQCache keys not implement for dev")
+}

@@ -7,7 +7,7 @@ import (
 
 func TestBasicGoCache(t *testing.T) {
 	c, e := New(
-		&CacheParams{"lru", "testlru", 1, 2, false, 5})
+		&CacheParams{"lru", "testlru", 1, 2, false, 5, nil})
 	if e != nil {
 		t.Fatalf("err: %v", e)
 	}
@@ -19,7 +19,7 @@ func TestBasicGoCache(t *testing.T) {
 	}
 
 	c1, e1 := New(
-		&CacheParams{"lru", "testlru1", 3, 5, false, 5})
+		&CacheParams{"lru", "testlru1", 3, 5, false, 5, nil})
 	if e1 != nil {
 		t.Fatalf("err: %v", e1)
 	}
@@ -53,7 +53,7 @@ func TestBasicGoCache(t *testing.T) {
 	}
 
 	c2, e2 := New(
-		&CacheParams{"lru", "testlru2", 3, 5, true, 5})
+		&CacheParams{"lru", "testlru2", 3, 5, true, 5, nil})
 	if e2 != nil {
 		t.Fatalf("err: %v", e2)
 	}
@@ -72,7 +72,7 @@ func TestBasicGoCache(t *testing.T) {
 	}
 
 	c3, e3 := New(
-		&CacheParams{"lru", "testlru3", 3, 5, false, 5})
+		&CacheParams{"lru", "testlru3", 3, 5, false, 5, nil})
 	if e3 != nil {
 		t.Fatalf("err: %v", e3)
 	}
@@ -93,7 +93,7 @@ func TestBasicGoCache(t *testing.T) {
 	}
 
 	c4, e4 := New(
-		&CacheParams{"lru", "testlru4", 3, 5, false, 5})
+		&CacheParams{"lru", "testlru4", 3, 5, false, 5, nil})
 	if e4 != nil {
 		t.Fatalf("err: %v", e4)
 	}

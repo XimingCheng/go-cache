@@ -23,10 +23,9 @@ type CacheParams struct {
 	// if set elements are allowed to exist in the cache eternally
 	// and none are evicted
 	Eternal bool
-	// timer cycle
-	//CycleSize int
 	// cache capacity
-	Capacity int
+	Capacity    int
+	ExtendParam interface{}
 }
 
 type cacheManager struct {
@@ -97,6 +96,9 @@ func New(params *CacheParams) (gc *GoCache, err error) {
 		c, err = cachetype.NewFIFOCache(params.Capacity)
 	case "lfu":
 		c, err = cachetype.NewLFUCache(params.Capacity)
+	case "2q":
+		fifoCap := params.ExtendParam.(int)
+		c, err = cachetype.NewTwoQCache(params.Capacity-fifoCap, fifoCap)
 	default:
 		return nil, errors.New("No support cache type")
 	}
