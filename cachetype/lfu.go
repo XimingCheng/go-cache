@@ -51,7 +51,7 @@ func NewLFUCache(capacity int) (c *LFUCache, err error) {
 	c = &LFUCache{
 		capacity:  capacity,
 		cacheData: &dataHeap{},
-		keyMap:    make(map[interface{}]int, c.capacity),
+		keyMap:    make(map[interface{}]int, capacity),
 	}
 	heap.Init(c.cacheData)
 	return c, nil
@@ -118,7 +118,7 @@ func (cache *LFUCache) Keys(old2new bool) []interface{} {
 	keys := make([]interface{}, n)
 	var i int
 	if old2new {
-		i = n
+		i = n - 1
 	} else {
 		i = 0
 	}
