@@ -12,7 +12,7 @@ type TWOQCache struct {
 }
 
 // return a new Two Queue cache with given capacitys(include lrucache and fifocache), if errors occur, return err
-func NewTwoQCache(lruCapacity int, fifoCapacity int) (c *TWOQCache, err error) {
+func NewTwoQCache(fifoCapacity int, lruCapacity int) (c *TWOQCache, err error) {
 	if lruCapacity <= 0 || fifoCapacity <= 0 {
 		return nil, errors.New("The input cache capacity is no more than 0")
 	}
@@ -33,6 +33,9 @@ func NewTwoQCache(lruCapacity int, fifoCapacity int) (c *TWOQCache, err error) {
 }
 
 func (cache *TWOQCache) Add(key, value interface{}) {
+	if cache.lruCache.IsExist(key) {
+		cache.lruCache.Remove(key)
+	}
 	cache.fifoCache.Add(key, value)
 }
 
