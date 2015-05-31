@@ -17,21 +17,26 @@ func RegsiterFunction(f interface{}, params *CacheParams) error {
 		return err
 	}
 
-	manager.cacheFuncMap[f] = gc
+	if manager.cacheFuncMap == nil {
+		manager.cacheFuncMap = make(map[interface{}]*GoCache)
+	}
+	manager.cacheFuncMap[reflect.ValueOf(f)] = gc
 	return nil
 }
 
 func UnRegsiterFunction(f interface{}) error {
-	if reflect.TypeOf(f).Kind() != reflect.Func {
+	t := reflect.TypeOf(f)
+	if t.Kind() != reflect.Func {
 		return errors.New("RegsiterFunction input is not a function")
 	}
 
-	if gc, ok := manager.cacheFuncMap[f]; ok {
+	v := reflect.ValueOf(f)
+	if gc, ok := manager.cacheFuncMap[v]; ok {
 		name := gc.params.Name
 		gc.Clear()
 		delete(manager.cacheMap, name)
 		delete(manager.paramsMap, name)
-		delete(manager.cacheFuncMap, f)
+		delete(manager.cacheFuncMap, v)
 		return nil
 	}
 	return errors.New("no such function regsitered")
@@ -43,7 +48,8 @@ func Invoke(f interface{}, inputs ...interface{}) (outputs []interface{}, err er
 		return nil, errors.New("RegsiterFunction input is not a function")
 	}
 
-	if gc, ok := manager.cacheFuncMap[f]; ok {
+	v := reflect.ValueOf(f)
+	if gc, ok := manager.cacheFuncMap[v]; ok {
 		inputsArgs := make([]interface{}, len(inputs))
 		for idx, input := range inputs {
 			inputsArgs[idx] = input
